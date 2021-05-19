@@ -17,7 +17,7 @@ use rtt_target::rtt_init_print;
 
 use core::cell::UnsafeCell;
 use drogue_device::{
-    actors::button::Button,
+    actors::{button::Button, wifi::esp8266::*},
     drivers::wifi::esp8266::*,
     nrf::{
         buffered_uarte::BufferedUarte,
@@ -36,7 +36,7 @@ const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.passw
 const HOST: IpAddress = IpAddress::new_v4(192, 168, 1, 2);
 const PORT: u16 = 12345;
 
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
+static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
 
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_03>;
@@ -55,11 +55,9 @@ pub struct MyDevice {
 #[drogue::main]
 async fn main(context: DeviceContext<MyDevice>) {
     rtt_init_print!();
-    unsafe {
-        log::set_logger_racy(&LOGGER).unwrap();
-    }
+    log::set_logger(&LOGGER).unwrap();
 
-    log::set_max_level(log::LevelFilter::Info);
+    log::set_max_level(log::LevelFilter::Trace);
     let p = Peripherals::take().unwrap();
 
     let g = gpiote::initialize(p.GPIOTE, interrupt::take!(GPIOTE));

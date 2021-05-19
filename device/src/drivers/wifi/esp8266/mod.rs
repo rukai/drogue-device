@@ -88,7 +88,7 @@ pub struct Esp8266Controller<'a> {
 
 pub struct Esp8266Modem<'a, UART, ENABLE, RESET>
 where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
+    UART: AsyncBufReadExt + AsyncWriteExt + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
@@ -126,7 +126,7 @@ impl Esp8266Driver {
         reset: RESET,
     ) -> (Esp8266Controller<'a>, Esp8266Modem<'a, UART, ENABLE, RESET>)
     where
-        UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
+        UART: AsyncBufReadExt + AsyncWriteExt + 'static,
         ENABLE: OutputPin + 'static,
         RESET: OutputPin + 'static,
     {
@@ -143,7 +143,7 @@ impl Esp8266Driver {
 
 impl<'a, UART, ENABLE, RESET> Esp8266Modem<'a, UART, ENABLE, RESET>
 where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
+    UART: AsyncBufReadExt + AsyncWriteExt + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
@@ -594,7 +594,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
 
 async fn uart_read<UART>(uart: &mut UART, rx_buf: &mut [u8]) -> Result<usize, embassy::io::Error>
 where
-    UART: AsyncBufRead + AsyncBufReadExt + 'static,
+    UART: AsyncBufReadExt + 'static,
 {
     let mut uart = unsafe { Pin::new_unchecked(uart) };
     uart.read(rx_buf).await
@@ -602,66 +602,8 @@ where
 
 async fn uart_write<UART>(uart: &mut UART, buf: &[u8]) -> Result<(), embassy::io::Error>
 where
-    UART: AsyncWriteExt + AsyncWrite + 'static,
+    UART: AsyncWriteExt + 'static,
 {
     let mut uart = unsafe { Pin::new_unchecked(uart) };
     uart.write_all(buf).await
-}
-
-/// Convenience actor implementation of modem
-pub struct Esp8266ModemActor<'a, UART, ENABLE, RESET>
-where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
-    ENABLE: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-{
-    modem: Option<Esp8266Modem<'a, UART, ENABLE, RESET>>,
-}
-
-impl<'a, UART, ENABLE, RESET> Esp8266ModemActor<'a, UART, ENABLE, RESET>
-where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
-    ENABLE: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-{
-    pub fn new() -> Self {
-        Self { modem: None }
-    }
-}
-
-impl<'a, UART, ENABLE, RESET> Unpin for Esp8266ModemActor<'a, UART, ENABLE, RESET>
-where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
-    ENABLE: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-{
-}
-
-impl<'a, UART, ENABLE, RESET> Actor for Esp8266ModemActor<'a, UART, ENABLE, RESET>
-where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
-    ENABLE: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-{
-    type Configuration = Esp8266Modem<'a, UART, ENABLE, RESET>;
-    #[rustfmt::skip]
-    type Message<'m> where 'a: 'm = ();
-
-    fn on_mount(&mut self, config: Self::Configuration) {
-        self.modem.replace(config);
-    }
-
-    #[rustfmt::skip]
-    type OnStartFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
-    fn on_start(mut self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        async move {
-            self.modem.as_mut().unwrap().run().await;
-        }
-    }
-
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
-    fn on_message<'m>(self: Pin<&'m mut Self>, _: Self::Message<'m>) -> Self::OnMessageFuture<'m> {
-        async move {}
-    }
 }

@@ -10,7 +10,9 @@ mod serial;
 
 use async_io::Async;
 use core::cell::UnsafeCell;
-use drogue_device::{drivers::wifi::esp8266::*, io::FromStdIo, traits::ip::*, *};
+use drogue_device::{
+    actors::wifi::esp8266::*, drivers::wifi::esp8266::*, io::FromStdIo, traits::ip::*, *,
+};
 use embedded_hal::digital::v2::OutputPin;
 use futures::io::BufReader;
 use nix::sys::termios;
